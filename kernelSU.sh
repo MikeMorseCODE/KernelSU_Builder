@@ -76,6 +76,28 @@ if [ ! -f "include/linux/pgtable.h" ] && [ -f "include/asm-generic/pgtable.h" -o
 EOF
 fi
 
+# Some kernels miss SECCOMP_ARCH_NATIVE_NR; provide a compatibility fallback for KernelSU seccomp cache.
+if [ -f "drivers/kernelsu/infra/seccomp_cache.c" ]; then
+    if [ ! -f "include/linux/seccomp.h" ] || ! grep -q "SECCOMP_ARCH_NATIVE_NR" include/linux/seccomp.h; then
+        if ! grep -q "KSU_SECCOMP_ARCH_NATIVE_NR_FALLBACK" drivers/kernelsu/infra/seccomp_cache.c; then
+            tmp_file="$(mktemp)"
+            cat > "$tmp_file" <<'EOF'
+#ifndef SECCOMP_ARCH_NATIVE_NR
+#define KSU_SECCOMP_ARCH_NATIVE_NR_FALLBACK
+#ifdef CONFIG_COMPAT
+#define SECCOMP_ARCH_NATIVE_NR 2
+#else
+#define SECCOMP_ARCH_NATIVE_NR 1
+#endif
+#endif
+
+EOF
+            cat drivers/kernelsu/infra/seccomp_cache.c >> "$tmp_file"
+            mv "$tmp_file" drivers/kernelsu/infra/seccomp_cache.c
+        fi
+    fi
+fi
+
 # Fix KernelSU fsnotify API mismatch for kernels exposing fsnotify_ops.handle_event.
 if [ -f "drivers/kernelsu/manager/pkg_observer.c" ] && [ -f "include/linux/fsnotify_backend.h" ]; then
     if grep -q "handle_event" include/linux/fsnotify_backend.h; then
