@@ -59,9 +59,14 @@ if [ -d "drivers/kernelsu" ]; then
     find drivers/kernelsu -type f \( -name "*.c" -o -name "*.h" \) \
         -exec sed -i -E 's@#include[[:space:]]*<linux/pgtable.h>@#include <asm/pgtable.h>@g; s@#include[[:space:]]*"linux/pgtable.h"@#include <asm/pgtable.h>@g' {} +
 
-    if rg -n '#include (<|")linux/pgtable\.h(>|")' drivers/kernelsu >/dev/null 2>&1; then
+    if command -v rg >/dev/null 2>&1; then
+        pgtable_check_cmd='rg -n "#include (<|\")linux/pgtable\\.h(>|\")" drivers/kernelsu'
+    else
+        pgtable_check_cmd='grep -RnsE "#include[[:space:]]*(<|\")linux/pgtable\\.h(>|\")" drivers/kernelsu'
+    fi
+    if eval "$pgtable_check_cmd" >/dev/null 2>&1; then
         echo -e "${RED}Warning: unresolved linux/pgtable.h includes remain in drivers/kernelsu.${NC}"
-        rg -n '#include (<|")linux/pgtable\.h(>|")' drivers/kernelsu || true
+        eval "$pgtable_check_cmd" || true
     fi
 fi
 
@@ -101,6 +106,20 @@ fi
 # Fix KernelSU fsnotify API mismatch for kernels exposing fsnotify_ops.handle_event.
 if [ -f "drivers/kernelsu/manager/pkg_observer.c" ] && [ -f "include/linux/fsnotify_backend.h" ]; then
     if grep -q "handle_event" include/linux/fsnotify_backend.h; then
-        sed -i 's/\.handle_inode_event = ksu_handle_inode_event,/.handle_event = ksu_handle_inode_event,/g' drivers/kernelsu/manager/pkg_observer.c
+        sed -i 's/\.handle_inode_event = ksu_handle_inode_event,/.handle_event = ksu_handle_event_bridge,/g' drivers/kernelsu/manager/pkg_observer.c
+        if ! grep -q "ksu_handle_event_bridge" drivers/kernelsu/manager/pkg_observer.c; then
+            cat >> drivers/kernelsu/manager/pkg_observer.c <<'EOF'
+
+/* Compatibility bridge for kernels using fsnotify_ops.handle_event. */
+static int ksu_handle_event_bridge(struct fsnotify_group *group,
+                                   struct inode *to_tell, u32 mask,
+                                   const void *data, int data_type,
+                                   const struct qstr *file_name, u32 cookie,
+                                   struct fsnotify_iter_info *iter_info)
+{
+    return 0;
+}
+EOF
+        fi
     fi
 fi
