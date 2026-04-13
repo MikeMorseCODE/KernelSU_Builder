@@ -17,7 +17,7 @@ LineageOS-23.0:
 KernelSU:
   version:
     default:
-      - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+      - curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -
 
 AnyKernel3:
   version:
