@@ -57,12 +57,23 @@ done
 # Patch pgtable include mismatch for different kernel trees.
 if [ -d "drivers/kernelsu" ]; then
     find drivers/kernelsu -type f \( -name "*.c" -o -name "*.h" \) \
-        -exec sed -i -E 's@#include <linux/pgtable.h>@#include <asm/pgtable.h>@g; s@#include "linux/pgtable.h"@#include <asm/pgtable.h>@g' {} +
+        -exec sed -i -E 's@#include[[:space:]]*<linux/pgtable.h>@#include <asm/pgtable.h>@g; s@#include[[:space:]]*"linux/pgtable.h"@#include <asm/pgtable.h>@g' {} +
 
     if rg -n '#include (<|")linux/pgtable\.h(>|")' drivers/kernelsu >/dev/null 2>&1; then
         echo -e "${RED}Warning: unresolved linux/pgtable.h includes remain in drivers/kernelsu.${NC}"
         rg -n '#include (<|")linux/pgtable\.h(>|")' drivers/kernelsu || true
     fi
+fi
+
+# Some kernels do not provide include/linux/pgtable.h; add a shim to keep older KernelSU sources building.
+if [ ! -f "include/linux/pgtable.h" ] && [ -f "include/asm-generic/pgtable.h" -o -f "arch/arm64/include/asm/pgtable.h" ]; then
+    mkdir -p include/linux
+    cat > include/linux/pgtable.h <<'EOF'
+#ifndef _LINUX_PGTABLE_H
+#define _LINUX_PGTABLE_H
+#include <asm/pgtable.h>
+#endif
+EOF
 fi
 
 # Fix KernelSU fsnotify API mismatch for kernels exposing fsnotify_ops.handle_event.
