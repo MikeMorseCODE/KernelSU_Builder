@@ -1,13 +1,15 @@
 #!/bin/bash
 
+source ./lib/sources_json.sh
+
 # Define some colors
 GREEN='\033[32m'
 RED='\033[31m'
 NC='\033[0m' # No Color
 
 
-# Convert the YAML file to JSON using Python
-json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < sources.yaml)
+# Convert the YAML file to JSON
+json=$(load_sources_json sources.yaml)
 
 # Check if json is empty
 if [ -z "$json" ]

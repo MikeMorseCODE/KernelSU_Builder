@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./lib/sources_json.sh
+
 # Get version from GitHub environment variable
 version=${VERSION}
 
@@ -11,7 +13,13 @@ then
 fi
 
 # Convert the YAML file to JSON
-json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < sources.yaml)
+json=$(load_sources_json sources.yaml)
+
+if [ -z "$json" ]
+then
+    echo "Failed to convert YAML to JSON. Exiting..."
+    exit 1
+fi
 
 # Parse the JSON file
 kernel_commands=$(echo $json | jq -r --arg version "$version" '.[$version].kernel[]')

@@ -1,7 +1,9 @@
 #!/bin/bash
 
+source ./lib/sources_json.sh
+
 # Convert the YAML file to JSON
-json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < sources.yaml)
+json=$(load_sources_json sources.yaml)
 
 # Convert the JSON to a string using jq
 json_string=$(echo "$json" | jq -rC tostring)
