@@ -57,6 +57,8 @@ if [ "${KERNELSU:-false}" = "true" ]; then
                 echo "#  define SECCOMP_ARCH_NATIVE_NR __NR_syscalls"
                 echo "# elif defined(NR_syscalls)"
                 echo "#  define SECCOMP_ARCH_NATIVE_NR NR_syscalls"
+                echo "# else"
+                echo "#  define SECCOMP_ARCH_NATIVE_NR 0x7fffffff"
                 echo "# endif"
                 echo "#endif"
                 cat "$file"
