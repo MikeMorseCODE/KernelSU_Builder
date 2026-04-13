@@ -17,7 +17,7 @@ LineageOS-23.0:
 KernelSU:
   version:
     default:
-      - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/v0.7.6/kernel/setup.sh" | bash -
+      - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/v0.7.6/kernel/setup.sh" | bash - && find drivers/kernelsu -name "*.c" -exec sed -i 's/#include <linux\/pgtable.h>/#include <asm\/pgtable.h>/g' {} \;
 
 AnyKernel3:
   version:
