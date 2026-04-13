@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 
 # Define some colors
 GREEN='\033[32m'
@@ -49,3 +51,11 @@ echo "$kernelSU_commands" | while read -r command; do
     command=${command//kernelsu-version/$kernelsu_version}
     eval "$command"
 done
+
+# Compatibility fix for kernels that do not expose linux/pgtable.h
+if [ -d drivers/kernelsu ]; then
+    find drivers/kernelsu -name "*.c" -print0 | while IFS= read -r -d '' file; do
+        sed -i 's|#include <linux/pgtable.h>|#include <asm/pgtable.h>|g' "$file"
+    done
+fi
+

@@ -1,52 +1,50 @@
 name: Watch KernelSU
+
 on:
   schedule:
-    - cron: '0 */3 * * *'  # Run every 3 hours
-  workflow_dispatch:  # Allows manual triggering
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
 
 jobs:
   check-release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Install jq
-        run: sudo apt-get install jq
+        uses: actions/checkout@v4
 
       - name: Check for new release
         id: check_release
         run: |
-          LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/tiann/KernelSU/releases/latest" | jq -r .tag_name)
-          CURRENT_RELEASE=$(cat ksu_version.txt || true)
-          if [ "$LATEST_RELEASE" != "$CURRENT_RELEASE" ]; then
-            echo "::set-output name=release::$LATEST_RELEASE"
-            echo "::set-output name=update_needed::true"
+          set -euo pipefail
+          latest_release=$(curl --silent "https://api.github.com/repos/tiann/KernelSU/releases/latest" | jq -r .tag_name)
+          current_release=$(cat ksu_version.txt || true)
+
+          if [ "$latest_release" != "$current_release" ]; then
+            echo "release=$latest_release" >> "$GITHUB_OUTPUT"
+            echo "update_needed=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::set-output name=update_needed::false"
+            echo "update_needed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create file with KernelSU version
         if: steps.check_release.outputs.update_needed == 'true'
-        run: |
-          echo "${{ steps.check_release.outputs.release }}" > ksu_version.txt
+        run: echo "${{ steps.check_release.outputs.release }}" > ksu_version.txt
 
       - name: Commit and push
         if: steps.check_release.outputs.update_needed == 'true'
         run: |
+          set -euo pipefail
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add ksu_version.txt
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update to latest KernelSU release tag" && git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:$BRANCH_NAME)
+          branch_name=${GITHUB_REF#refs/heads/}
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update to latest KernelSU release tag" && git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "HEAD:${branch_name}")
 
       - name: Trigger Build Kernel workflow
         if: steps.check_release.outputs.update_needed == 'true'
-        uses: peter-evans/repository-dispatch@v1
+        uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           event-type: trigger-KernelSU-build
-
-      - name: Print dispatch response
-        run: echo "${{ steps.dispatch.outputs.response }}"
