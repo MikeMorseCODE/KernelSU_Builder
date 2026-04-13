@@ -11,8 +11,15 @@ LineageOS-23.0:
     - out/arch/arm64/boot/Image
   kernelSU:
     - default
+  anykernel:
+    - default
 
 KernelSU:
   version:
     default:
       - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+
+AnyKernel3:
+  version:
+    default:
+      - git clone --depth=1 -b master https://github.com/osm0sis/AnyKernel3
