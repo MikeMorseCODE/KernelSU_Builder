@@ -3,3 +3,7 @@ LineageOS-23.0:
     - git clone --depth=1 -b lineage-23.0 https://github.com/LineageOS/android_kernel_razer_sg8175p
   clang:
     - git clone --depth=1 https://github.com/ZyCromerZ/Clang
+  config:
+    - make O=out ARCH=arm64 lahaina-qgki_defconfig
+  build:
+    - make O=out ARCH=arm64 -j$(nproc) CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi-
