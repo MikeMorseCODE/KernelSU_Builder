@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Define some colors
 GREEN='\033[32m'
@@ -49,3 +50,18 @@ echo "$kernelSU_commands" | while read -r command; do
     command=${command//kernelsu-version/$kernelsu_version}
     eval "$command"
 done
+
+# Compatibility fix for kernels that do not expose linux/pgtable.h
+patched=0
+for path in KernelSU drivers/kernelsu; do
+    if [ -d "$path" ]; then
+        while IFS= read -r -d '' file; do
+            if grep -q '#include <linux/pgtable.h>' "$file"; then
+                sed -i 's|#include <linux/pgtable.h>|#include <asm/pgtable.h>|g' "$file"
+                patched=$((patched + 1))
+            fi
+        done < <(find "$path" -type f -name '*.c' -print0)
+    fi
+done
+
+echo -e "${GREEN}KernelSU pgtable compatibility patches applied: ${patched}${NC}"

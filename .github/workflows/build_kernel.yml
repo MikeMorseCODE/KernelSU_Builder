@@ -6,6 +6,9 @@ on:
   repository_dispatch:
     types: [trigger-KernelSU-build]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -20,47 +23,76 @@ jobs:
       KBUILD_BUILD_USER: "KernelSU_Builder"
       CLANG_PATH: ${{ github.workspace }}/kernel/clang/bin
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Install build dependencies
         run: |
-          sudo apt update
-          sudo apt install -y python3-pip jq libarchive-tools zip lib32z-dev libghc-bzlib-dev pngcrush libsdl1.2-dev autoconf libxml2-utils wget pkg-config unzip w3m gawk imagemagick libc6-dev gcc-multilib patchelf gzip clang subversion optipng device-tree-compiler ccache gcc lzip rsync automake python3 patch zip pngquant expat lzop libswitch-perl make libcap-dev libxml2 bison libxml-simple-perl zlib1g-dev libarchive-tools libtool squashfs-tools gperf libfl-dev ncurses-dev pwgen flex libssl-dev libbz2-dev lib32z1-dev libgmp-dev git libncurses-dev dpkg-dev libmpc-dev python3 git-lfs policycoreutils bzip2 bc libgl1-mesa-dev texinfo schedtool curl libexpat1-dev llvm libc6-dev-i386 apt-utils cmake g++-multilib build-essential re2c axel maven xsltproc g++ libx11-dev libxml-sax-base-perl gnupg bash python-is-python3 libmpfr-dev libncurses6 lib32ncurses-dev liblz4-tool libssl-dev libelf-dev bc
-          sudo pip3 install yq
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            bc bison build-essential ccache clang cmake curl device-tree-compiler \
+            flex g++-multilib gcc-multilib git git-lfs jq libarchive-tools libbz2-dev \
+            libcap-dev libelf-dev libfl-dev libgmp-dev liblz4-tool libmpc-dev libmpfr-dev \
+            libncurses-dev libssl-dev lzop make patch python-is-python3 python3-yaml rsync unzip wget zip
+
+      - name: Print toolchain info
+        run: |
+          set -euo pipefail
+          python3 --version
+          clang --version | head -n 1
+          git --version
+          jq --version
 
       - name: Set up ccache
         run: |
-          echo "/usr/lib/ccache" >> $GITHUB_PATH
-          echo "USE_CCACHE=1" >> $GITHUB_ENV
+          echo "/usr/lib/ccache" >> "$GITHUB_PATH"
+          echo "USE_CCACHE=1" >> "$GITHUB_ENV"
 
       - name: Cache ccache
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          key: ${{ runner.os }}-ccache-${{ matrix.version }}-${{ github.ref_name }}
           restore-keys: |
+            ${{ runner.os }}-ccache-${{ matrix.version }}-
             ${{ runner.os }}-ccache-
 
       - name: Clone clang and kernel sources
         run: |
+          set -euo pipefail
           chmod +x clone.sh
-          ./clone.sh
+          for attempt in 1 2; do
+            if ./clone.sh; then
+              break
+            fi
+            if [ "$attempt" -eq 2 ]; then
+              echo "clone.sh failed after ${attempt} attempts"
+              exit 1
+            fi
+            echo "clone.sh failed on attempt ${attempt}; retrying..."
+            rm -rf kernel
+            sleep 5
+          done
 
       - name: Add Clang to PATH
-        run: |
-          echo "${CLANG_PATH}" >> $GITHUB_PATH
-        
+        run: echo "${CLANG_PATH}" >> "$GITHUB_PATH"
+
       - name: Compile kernel
         run: |
+          set -euo pipefail
           chmod +x build.sh
-          ./build.sh
+          ./build.sh 2>&1 | tee "${GITHUB_WORKSPACE}/build-no-ksu.log"
 
       - name: Make output directory for kernel
         run: |
-          mkdir outw
-          mkdir outw/false
-          mkdir outw/true
+          mkdir -p outw/false
+          mkdir -p outw/true
 
       - name: Move kernel without KernelSU support to output directory
         run: |
@@ -73,20 +105,31 @@ jobs:
           ./clean.sh
 
       - name: Set KERNELSU environment variable to true
-        run: echo "KERNELSU=true" >> $GITHUB_ENV
+        run: echo "KERNELSU=true" >> "$GITHUB_ENV"
 
       - name: Set KERNELSU_VERSION environment variable
-        run: echo "KERNELSU_VERSION=$(cat ksu_version.txt)" >> $GITHUB_ENV
+        run: echo "KERNELSU_VERSION=$(cat ksu_version.txt)" >> "$GITHUB_ENV"
 
       - name: Add KernelSU support to kernel
         run: |
           chmod +x kernelSU.sh
           ./kernelSU.sh
 
+      - name: Verify KernelSU pgtable include fix
+        run: |
+          set -euo pipefail
+          if [ -d kernel/drivers/kernelsu ] || [ -d kernel/KernelSU ]; then
+            if rg -n "#include <linux/pgtable.h>" kernel/drivers/kernelsu kernel/KernelSU; then
+              echo "Found linux/pgtable.h include(s) after patch step; applying fallback rewrite"
+              find kernel/drivers/kernelsu kernel/KernelSU -type f -name '*.c' -exec sed -i 's|#include <linux/pgtable.h>|#include <asm/pgtable.h>|g' {} +
+            fi
+          fi
+
       - name: Compile kernel with KernelSU support
         run: |
+          set -euo pipefail
           chmod +x build.sh
-          ./build.sh
+          ./build.sh 2>&1 | tee "${GITHUB_WORKSPACE}/build-ksu.log"
 
       - name: Move kernel with KernelSU support to output directory
         run: |
@@ -100,8 +143,8 @@ jobs:
 
       - name: Set ZIP_NO_KSU and ZIP_KSU environment variables
         run: |
-          echo "ZIP_NO_KSU=${{ env.VERSION }}-NoKernelSU.zip" >> $GITHUB_ENV
-          echo "ZIP_KSU=${{ env.VERSION }}-KernelSU-$(cat ksu_version.txt).zip" >> $GITHUB_ENV
+          echo "ZIP_NO_KSU=${{ env.VERSION }}-NoKernelSU.zip" >> "$GITHUB_ENV"
+          echo "ZIP_KSU=${{ env.VERSION }}-KernelSU-$(cat ksu_version.txt).zip" >> "$GITHUB_ENV"
 
       - name: Make AnyKernel3 zip
         run: |
@@ -113,28 +156,39 @@ jobs:
           chmod +x extract.sh
           ./extract.sh
 
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            ${{ github.workspace }}/build-no-ksu.log
+            ${{ github.workspace }}/build-ksu.log
+          if-no-files-found: warn
+
       - name: Make a release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-             ${{ github.workspace }}/${{ env.ZIP_NO_KSU }}
-             ${{ github.workspace }}/${{ env.ZIP_KSU }}
+            ${{ github.workspace }}/${{ env.ZIP_NO_KSU }}
+            ${{ github.workspace }}/${{ env.ZIP_KSU }}
           token: ${{ secrets.GITHUB_TOKEN }}
           name: KernelSU Release - ${{ env.KERNELSU_VERSION }}
           tag_name: ${{ github.run_id }}
           body: |
-             **Info:**
-              - KernelSU Version: ${{ env.KERNELSU_VERSION }}.
-              
-              **Installation:**
-              - Download desired zip file.
-              - Flash the zip file in recovery using sideload or any other method.
-            
-              <details>
-                <summary>Build Settings</summary>
-                  ```
-                  ${{ env.buildsettings }}
-                  ```
-              </details>
+            **Info:**
+            - KernelSU Version: ${{ env.KERNELSU_VERSION }}.
+
+            **Installation:**
+            - Download desired zip file.
+            - Flash the zip file in recovery using sideload or any other method.
+
+            <details>
+              <summary>Build Settings</summary>
+
+              ```
+              ${{ env.buildsettings }}
+              ```
+            </details>
           draft: false
           prerelease: false
