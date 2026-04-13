@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Define some colors
 GREEN='\033[32m'
 RED='\033[31m'
@@ -49,3 +51,8 @@ echo "$kernelSU_commands" | while read -r command; do
     command=${command//kernelsu-version/$kernelsu_version}
     eval "$command"
 done
+
+# Apply local compatibility patches for known kernel/KSU API drifts.
+if [ -x "../kernelsu_compat.sh" ]; then
+    ../kernelsu_compat.sh
+fi
