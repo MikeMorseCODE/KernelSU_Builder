@@ -6,6 +6,9 @@ on:
   repository_dispatch:
     types: [trigger-KernelSU-build]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -151,6 +154,7 @@ jobs:
           path: |
             ${{ github.workspace }}/build-no-ksu.log
             ${{ github.workspace }}/build-ksu.log
+          if-no-files-found: warn
 
       - name: Make a release
         uses: softprops/action-gh-release@v2
