@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/sources_json.sh"
@@ -37,12 +38,12 @@ fi
 
 # Print the commands that will be executed
 echo -e "\033[31mBuild.sh will execute following commands corresponding to ${version}:\033[0m"
-echo "$config_commands" | while read -r command; do
+while read -r command; do
     echo -e "\033[32m$command\033[0m"
-done
-echo "$build_commands" | while read -r command; do
+done <<< "$config_commands"
+while read -r command; do
     echo -e "\033[32m$command\033[0m"
-done
+done <<< "$build_commands"
 
 # Enter the kernel directory
 cd "$KERNEL_DIR" || exit 1
@@ -59,14 +60,14 @@ else
 fi
 
 # Execute the config commands
-echo "$config_commands" | while read -r command; do
+while read -r command; do
     eval "$command"
-done
+done <<< "$config_commands"
 
 # Execute the build commands
-echo "$build_commands" | while read -r command; do
+while read -r command; do
     if [ -n "${MAKE_JOBS:-}" ]; then
         command=$(echo "$command" | sed -E "s/-j\\$\\(nproc\\)/-j${MAKE_JOBS}/g; s/-j[0-9]+/-j${MAKE_JOBS}/g")
     fi
     eval "$command $extra_make_env"
-done
+done <<< "$build_commands"

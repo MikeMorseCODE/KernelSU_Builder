@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/sources_json.sh"
@@ -30,27 +31,27 @@ clang_commands=$(echo $json | jq -r --arg version "$version" '.[$version].clang[
 
 # Print the commands that will be executed
 echo -e "\033[31mClone.sh will execute following commands corresponding to ${version}:\033[0m"
-echo "$kernel_commands" | while read -r command; do
+while read -r command; do
     echo -e "\033[32m$command\033[0m"
-done
-echo "$clang_commands" | while read -r command; do
+done <<< "$kernel_commands"
+while read -r command; do
     echo -e "\033[32m$command\033[0m"
-done
+done <<< "$clang_commands"
 
 # Clone the kernel and append clone path to the command
 if [ -d "$KERNEL_DIR/.git" ]; then
     echo -e "\033[33mkernel source already exists, skipping clone.\033[0m"
 else
-    echo "$kernel_commands" | while read -r command; do
+    while read -r command; do
         eval "$command \"$KERNEL_DIR\""
-    done
+    done <<< "$kernel_commands"
 fi
 
 # Clone the clang and append clone path to the command
 if [ -d "$CLANG_DIR/.git" ]; then
     echo -e "\033[33mclang toolchain already exists, skipping clone.\033[0m"
 else
-    echo "$clang_commands" | while read -r command; do
+    while read -r command; do
         eval "$command \"$CLANG_DIR\""
-    done
+    done <<< "$clang_commands"
 fi

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/sources_json.sh"
@@ -38,21 +39,21 @@ kernelSU_commands=$(echo $json | jq -r --arg version "$kernelSU_version" '.Kerne
 
 # Print the commands that will be executed
 echo -e "${GREEN}kernelSU.sh will execute following commands:${NC}"
-echo "$kernelSU_commands" | while read -r command; do
+while read -r command; do
     # Replace the placeholder with the actual value
     command=${command//kernelsu-version/$kernelsu_version}
     echo -e "${RED}$command${NC}"
-done
+done <<< "$kernelSU_commands"
 
 # Enter kernel directory
 cd "$KERNEL_DIR" || exit 1
 
 # Execute the commands
-echo "$kernelSU_commands" | while read -r command; do
+while read -r command; do
     # Replace the placeholder with the actual value
     command=${command//kernelsu-version/$kernelsu_version}
     eval "$command"
-done
+done <<< "$kernelSU_commands"
 
 # Patch pgtable include mismatch for different kernel trees.
 if [ -d "drivers/kernelsu" ]; then
