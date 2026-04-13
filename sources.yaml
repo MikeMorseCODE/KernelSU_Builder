@@ -17,7 +17,7 @@ LineageOS-23.0:
 KernelSU:
   version:
     default:
-      - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/v0.9.5/kernel/setup.sh" | bash - && sed -i 's/#include <linux\/pgtable.h>/#include <asm\/pgtable.h>/' drivers/kernelsu/feature/sucompat.c
+      - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/v0.9.5/kernel/setup.sh" | bash - && sed -i 's/#include <linux\/pgtable.h>/#include <asm\/pgtable.h>/' drivers/kernelsu/feature/sucompat.c && sed -i 's/SECCOMP_ARCH_NATIVE_NR/NR_syscalls/g' drivers/kernelsu/infra/seccomp_cache.c
 
 AnyKernel3:
   version:
