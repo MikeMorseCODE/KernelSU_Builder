@@ -1,9 +1,0 @@
-kernels:
-  - repo: https://github.com/LineageOS/android_kernel_razer_sg8175p
-    branch: lineage-23.0
-    defconfig: lahaina-qgki_defconfig
-    anykernel: https://github.com/osm0sis/AnyKernel3
-    anykernel_branch: master
-    ksu: true
-    arch: arm64
-    kernel_image: Image
