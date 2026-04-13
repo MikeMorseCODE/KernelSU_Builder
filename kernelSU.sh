@@ -52,6 +52,17 @@ echo "$kernelSU_commands" | while read -r command; do
     eval "$command"
 done
 
+# Patch pgtable include mismatch for different kernel trees.
+if [ -d "drivers/kernelsu" ]; then
+    find drivers/kernelsu -type f \( -name "*.c" -o -name "*.h" \) \
+        -exec sed -i -E 's@#include <linux/pgtable.h>@#include <asm/pgtable.h>@g; s@#include "linux/pgtable.h"@#include <asm/pgtable.h>@g' {} +
+
+    if rg -n '#include (<|")linux/pgtable\.h(>|")' drivers/kernelsu >/dev/null 2>&1; then
+        echo -e "${RED}Warning: unresolved linux/pgtable.h includes remain in drivers/kernelsu.${NC}"
+        rg -n '#include (<|")linux/pgtable\.h(>|")' drivers/kernelsu || true
+    fi
+fi
+
 # Fix KernelSU fsnotify API mismatch for kernels exposing fsnotify_ops.handle_event.
 if [ -f "drivers/kernelsu/manager/pkg_observer.c" ] && [ -f "include/linux/fsnotify_backend.h" ]; then
     if grep -q "handle_event" include/linux/fsnotify_backend.h; then
