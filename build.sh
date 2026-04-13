@@ -43,6 +43,13 @@ done
 # Enter the kernel directory
 cd kernel || exit 1
 
+# Apply KernelSU header compatibility fix for KSU builds
+if [ "${KERNELSU:-false}" = "true" ]; then
+    while IFS= read -r -d '' file; do
+        sed -i 's|#include <linux/pgtable.h>|#include <asm/pgtable.h>|g' "$file"
+    done < <(find KernelSU drivers/kernelsu -type f -name '*.c' 2>/dev/null -print0)
+fi
+
 # Execute the config commands
 echo "$config_commands" | while read -r command; do
     eval "$command"

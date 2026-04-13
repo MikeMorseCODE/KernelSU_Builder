@@ -115,6 +115,16 @@ jobs:
           chmod +x kernelSU.sh
           ./kernelSU.sh
 
+      - name: Verify KernelSU pgtable include fix
+        run: |
+          set -euo pipefail
+          if [ -d kernel/drivers/kernelsu ] || [ -d kernel/KernelSU ]; then
+            if rg -n "#include <linux/pgtable.h>" kernel/drivers/kernelsu kernel/KernelSU; then
+              echo "Found linux/pgtable.h include(s) after patch step; applying fallback rewrite"
+              find kernel/drivers/kernelsu kernel/KernelSU -type f -name '*.c' -exec sed -i 's|#include <linux/pgtable.h>|#include <asm/pgtable.h>|g' {} +
+            fi
+          fi
+
       - name: Compile kernel with KernelSU support
         run: |
           set -euo pipefail
