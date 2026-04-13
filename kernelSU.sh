@@ -107,7 +107,7 @@ fi
 # Fix KernelSU fsnotify API mismatch for kernels exposing fsnotify_ops.handle_event.
 if [ -f "drivers/kernelsu/manager/pkg_observer.c" ] && [ -f "include/linux/fsnotify_backend.h" ]; then
     if grep -q "handle_event" include/linux/fsnotify_backend.h; then
-        sed -i 's/\.handle_inode_event = ksu_handle_inode_event,/.handle_event = ksu_handle_event_bridge,/g' drivers/kernelsu/manager/pkg_observer.c
+        sed -i 's/\.handle_inode_event = ksu_handle_inode_event,/.handle_event = ksu_handle_event_bridge,/g; s/\.handle_event = ksu_handle_inode_event,/.handle_event = ksu_handle_event_bridge,/g' drivers/kernelsu/manager/pkg_observer.c
         if ! grep -q "ksu_handle_event_bridge" drivers/kernelsu/manager/pkg_observer.c; then
             cat >> drivers/kernelsu/manager/pkg_observer.c <<'EOF'
 
@@ -122,5 +122,24 @@ static int ksu_handle_event_bridge(struct fsnotify_group *group,
 }
 EOF
         fi
+    fi
+fi
+
+# Backport helpers for older task_work/sched APIs used by KernelSU allowlist.
+if [ -f "drivers/kernelsu/policy/allowlist.c" ]; then
+    if ! grep -q "linux/sched/task.h" drivers/kernelsu/policy/allowlist.c; then
+        sed -i '1i #include <linux/sched/task.h>' drivers/kernelsu/policy/allowlist.c
+    fi
+    if ! grep -q "KSU_TWA_RESUME_FALLBACK" drivers/kernelsu/policy/allowlist.c; then
+        tmp_file="$(mktemp)"
+        cat > "$tmp_file" <<'EOF'
+#ifndef TWA_RESUME
+#define KSU_TWA_RESUME_FALLBACK
+#define TWA_RESUME 0
+#endif
+
+EOF
+        cat drivers/kernelsu/policy/allowlist.c >> "$tmp_file"
+        mv "$tmp_file" drivers/kernelsu/policy/allowlist.c
     fi
 fi
