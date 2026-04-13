@@ -2,7 +2,7 @@ LineageOS-23.0:
   kernel:
     - git clone --depth=1 -b lineage-23.0 https://github.com/LineageOS/android_kernel_razer_sg8175p
   clang:
-    - git clone --depth=1 -b 17 https://gitlab.com/ThankYouMario/android_prebuilts_clang-kernel_linux-x86_clang-r487747c
+    - git clone --depth=1 -b main https://github.com/kdrag0n/proton-clang
   config:
     - make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/lahaina-qgki_defconfig
   build:
