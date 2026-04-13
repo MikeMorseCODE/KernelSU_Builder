@@ -1,8 +1,8 @@
 LineageOS-23.0:
   kernel:
-    - git clone --depth=1 -b lineage-23.0 https://github.com/LineageOS/android_kernel_razer_sg8175p
+    - git clone --depth=1 --filter=blob:none --single-branch -b lineage-23.0 https://github.com/LineageOS/android_kernel_razer_sg8175p
   clang:
-    - git clone --depth=1 -b master https://github.com/kdrag0n/proton-clang
+    - git clone --depth=1 --filter=blob:none --single-branch -b master https://github.com/kdrag0n/proton-clang
   config:
     - make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/lahaina-qgki_defconfig
   build:
@@ -22,4 +22,4 @@ KernelSU:
 AnyKernel3:
   version:
     default:
-      - git clone --depth=1 -b master https://github.com/osm0sis/AnyKernel3
+      - git clone --depth=1 --filter=blob:none --single-branch -b master https://github.com/osm0sis/AnyKernel3

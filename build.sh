@@ -45,6 +45,17 @@ done
 # Enter the kernel directory
 cd kernel || exit 1
 
+# Enable ccache automatically when available (can be disabled with USE_CCACHE=0).
+if command -v ccache >/dev/null 2>&1 && [ "${USE_CCACHE:-1}" != "0" ]; then
+    export CCACHE_DIR="${CCACHE_DIR:-$PWD/.ccache}"
+    export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-20G}"
+    export CCACHE_COMPRESS=1
+    ccache -M "$CCACHE_MAXSIZE" >/dev/null 2>&1 || true
+    extra_make_env='CC="ccache clang" HOSTCC="ccache clang"'
+else
+    extra_make_env=''
+fi
+
 # Execute the config commands
 echo "$config_commands" | while read -r command; do
     eval "$command"
@@ -52,5 +63,8 @@ done
 
 # Execute the build commands
 echo "$build_commands" | while read -r command; do
-    eval "$command"
+    if [ -n "${MAKE_JOBS:-}" ]; then
+        command=$(echo "$command" | sed -E "s/-j\\$\\(nproc\\)/-j${MAKE_JOBS}/g; s/-j[0-9]+/-j${MAKE_JOBS}/g")
+    fi
+    eval "$command $extra_make_env"
 done

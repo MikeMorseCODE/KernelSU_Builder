@@ -35,11 +35,19 @@ echo "$clang_commands" | while read -r command; do
 done
 
 # Clone the kernel and append clone path to the command
-echo "$kernel_commands" | while read -r command; do
-    eval "$command kernel"
-done
+if [ -d "kernel/.git" ]; then
+    echo -e "\033[33mkernel source already exists, skipping clone.\033[0m"
+else
+    echo "$kernel_commands" | while read -r command; do
+        eval "$command kernel"
+    done
+fi
 
 # Clone the clang and append clone path to the command
-echo "$clang_commands" | while read -r command; do
-    eval "$command kernel/clang"
-done
+if [ -d "kernel/clang/.git" ]; then
+    echo -e "\033[33mclang toolchain already exists, skipping clone.\033[0m"
+else
+    echo "$clang_commands" | while read -r command; do
+        eval "$command kernel/clang"
+    done
+fi
