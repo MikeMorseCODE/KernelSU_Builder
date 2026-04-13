@@ -1,6 +1,7 @@
 #!/bin/bash
 
-source ./lib/sources_json.sh
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/sources_json.sh"
 
 # Define some colors
 GREEN='\033[32m'
@@ -12,7 +13,7 @@ version=${VERSION}
 kernelsu_version=${KERNELSU_VERSION}
 
 # Convert the YAML file to JSON
-json=$(load_sources_json sources.yaml)
+json=$(load_sources_json "$SCRIPT_DIR/sources.yaml")
 
 # Check if json is empty
 if [ -z "$json" ]

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-source ./lib/sources_json.sh
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/sources_json.sh"
 
 # Get version from GitHub environment variable
 version=${VERSION}
@@ -13,7 +14,7 @@ then
 fi
 
 # Convert the YAML file to JSON
-json=$(load_sources_json sources.yaml)
+json=$(load_sources_json "$SCRIPT_DIR/sources.yaml")
 
 # Check if json is empty
 if [ -z "$json" ]

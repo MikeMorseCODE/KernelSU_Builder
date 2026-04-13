@@ -1,9 +1,10 @@
 #!/bin/bash
 
-source ./lib/sources_json.sh
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/sources_json.sh"
 
 # Convert the YAML file to JSON
-json=$(load_sources_json sources.yaml)
+json=$(load_sources_json "$SCRIPT_DIR/sources.yaml")
 
 # Convert the JSON to a string using jq
 json_string=$(echo "$json" | jq -rC tostring)
