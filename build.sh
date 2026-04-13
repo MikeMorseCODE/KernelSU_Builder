@@ -43,10 +43,26 @@ done
 # Enter the kernel directory
 cd kernel || exit 1
 
-# Apply KernelSU header compatibility fix for KSU builds
+# Apply KernelSU compatibility fixes for KSU builds
 if [ "${KERNELSU:-false}" = "true" ]; then
     while IFS= read -r -d '' file; do
         sed -i 's|#include <linux/pgtable.h>|#include <asm/pgtable.h>|g' "$file"
+
+        if grep -q 'SECCOMP_ARCH_NATIVE_NR' "$file" && ! grep -q 'KSU_SECCOMP_ARCH_NATIVE_NR_FALLBACK' "$file"; then
+            tmp_file=$(mktemp)
+            {
+                echo "/* KSU_SECCOMP_ARCH_NATIVE_NR_FALLBACK */"
+                echo "#ifndef SECCOMP_ARCH_NATIVE_NR"
+                echo "# ifdef __NR_syscalls"
+                echo "#  define SECCOMP_ARCH_NATIVE_NR __NR_syscalls"
+                echo "# elif defined(NR_syscalls)"
+                echo "#  define SECCOMP_ARCH_NATIVE_NR NR_syscalls"
+                echo "# endif"
+                echo "#endif"
+                cat "$file"
+            } > "$tmp_file"
+            mv "$tmp_file" "$file"
+        fi
     done < <(find KernelSU drivers/kernelsu -type f -name '*.c' 2>/dev/null -print0)
 fi
 
