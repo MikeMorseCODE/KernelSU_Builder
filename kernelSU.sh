@@ -107,24 +107,9 @@ fi
 # Fix KernelSU fsnotify API mismatch for kernels exposing fsnotify_ops.handle_event.
 if [ -f "drivers/kernelsu/manager/pkg_observer.c" ] && [ -f "include/linux/fsnotify_backend.h" ]; then
     if grep -q "handle_event" include/linux/fsnotify_backend.h; then
-        if ! grep -q "ksu_handle_event_bridge(struct fsnotify_group \\*group" drivers/kernelsu/manager/pkg_observer.c; then
-            sed -i '1i static int ksu_handle_event_bridge(struct fsnotify_group *group, struct inode *to_tell, u32 mask, const void *data, int data_type, const struct qstr *file_name, u32 cookie, struct fsnotify_iter_info *iter_info);' drivers/kernelsu/manager/pkg_observer.c
-        fi
-        sed -i 's/\.handle_inode_event = ksu_handle_inode_event,/.handle_event = ksu_handle_event_bridge,/g; s/\.handle_event = ksu_handle_inode_event,/.handle_event = ksu_handle_event_bridge,/g' drivers/kernelsu/manager/pkg_observer.c
-        if ! grep -q "Compatibility bridge for kernels using fsnotify_ops.handle_event" drivers/kernelsu/manager/pkg_observer.c; then
-            cat >> drivers/kernelsu/manager/pkg_observer.c <<'EOF'
-
-/* Compatibility bridge for kernels using fsnotify_ops.handle_event. */
-static int ksu_handle_event_bridge(struct fsnotify_group *group,
-                                   struct inode *to_tell, u32 mask,
-                                   const void *data, int data_type,
-                                   const struct qstr *file_name, u32 cookie,
-                                   struct fsnotify_iter_info *iter_info)
-{
-    return 0;
-}
-EOF
-        fi
+        sed -i 's/\.handle_inode_event = ksu_handle_inode_event,/.handle_event = (void *)ksu_handle_inode_event,/g; s/\.handle_event = ksu_handle_inode_event,/.handle_event = (void *)ksu_handle_inode_event,/g' drivers/kernelsu/manager/pkg_observer.c
+        # Clean leftovers from older bridge-based patches.
+        sed -i '/ksu_handle_event_bridge/d;/Compatibility bridge for kernels using fsnotify_ops.handle_event/d' drivers/kernelsu/manager/pkg_observer.c
     fi
 fi
 
