@@ -5,6 +5,7 @@ source "$SCRIPT_DIR/lib/sources_json.sh"
 
 # Get version from GitHub environment variable
 version=${VERSION}
+ANYKERNEL_DIR="${ANYKERNEL_DIR:-$SCRIPT_DIR/AnyKernel3}"
 
 # Check if version is provided
 if [ -z "$version" ]
@@ -43,8 +44,8 @@ then
     exit 1
 fi
 
-# Append "AnyKernel3" to the anykernel3 command
-anykernel3="${anykernel3} AnyKernel3"
+# Append AnyKernel3 output directory to the command
+anykernel3="${anykernel3} \"$ANYKERNEL_DIR\""
 
 # Print the commands that will be executed
 echo -e "\033[31mScript will execute following commands corresponding to ${version}:\033[0m"

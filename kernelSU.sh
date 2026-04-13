@@ -11,6 +11,7 @@ NC='\033[0m' # No Color
 # Get version from GitHub environment variable
 version=${VERSION}
 kernelsu_version=${KERNELSU_VERSION}
+KERNEL_DIR="${KERNEL_DIR:-$SCRIPT_DIR/kernel}"
 
 # Convert the YAML file to JSON
 json=$(load_sources_json "$SCRIPT_DIR/sources.yaml")
@@ -44,7 +45,7 @@ echo "$kernelSU_commands" | while read -r command; do
 done
 
 # Enter kernel directory
-cd kernel
+cd "$KERNEL_DIR" || exit 1
 
 # Execute the commands
 echo "$kernelSU_commands" | while read -r command; do

@@ -7,6 +7,7 @@ source "$SCRIPT_DIR/lib/sources_json.sh"
 GREEN='\033[32m'
 RED='\033[31m'
 NC='\033[0m' # No Color
+KERNEL_DIR="${KERNEL_DIR:-$SCRIPT_DIR/kernel}"
 
 
 # Convert the YAML file to JSON
@@ -37,7 +38,7 @@ echo "$custom_commands" | while read -r command; do
 done
 
 # Enter kernel directory
-cd kernel
+cd "$KERNEL_DIR" || exit 1
 
 # Execute the out commands
 echo "$out_commands" | while read -r command; do

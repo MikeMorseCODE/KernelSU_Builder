@@ -5,6 +5,7 @@ source "$SCRIPT_DIR/lib/sources_json.sh"
 
 # Get version from GitHub environment variable
 version=${VERSION}
+KERNEL_DIR="${KERNEL_DIR:-$SCRIPT_DIR/kernel}"
 
 # Check if version is provided
 if [ -z "$version" ]
@@ -44,7 +45,7 @@ echo "$build_commands" | while read -r command; do
 done
 
 # Enter the kernel directory
-cd kernel || exit 1
+cd "$KERNEL_DIR" || exit 1
 
 # Enable ccache automatically when available (can be disabled with USE_CCACHE=0).
 if command -v ccache >/dev/null 2>&1 && [ "${USE_CCACHE:-1}" != "0" ]; then

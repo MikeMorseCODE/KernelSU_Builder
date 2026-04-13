@@ -5,6 +5,8 @@ source "$SCRIPT_DIR/lib/sources_json.sh"
 
 # Get version from GitHub environment variable
 version=${VERSION}
+KERNEL_DIR="${KERNEL_DIR:-$SCRIPT_DIR/kernel}"
+CLANG_DIR="${CLANG_DIR:-$KERNEL_DIR/clang}"
 
 # Check if version is provided
 if [ -z "$version" ]
@@ -36,19 +38,19 @@ echo "$clang_commands" | while read -r command; do
 done
 
 # Clone the kernel and append clone path to the command
-if [ -d "kernel/.git" ]; then
+if [ -d "$KERNEL_DIR/.git" ]; then
     echo -e "\033[33mkernel source already exists, skipping clone.\033[0m"
 else
     echo "$kernel_commands" | while read -r command; do
-        eval "$command kernel"
+        eval "$command \"$KERNEL_DIR\""
     done
 fi
 
 # Clone the clang and append clone path to the command
-if [ -d "kernel/clang/.git" ]; then
+if [ -d "$CLANG_DIR/.git" ]; then
     echo -e "\033[33mclang toolchain already exists, skipping clone.\033[0m"
 else
     echo "$clang_commands" | while read -r command; do
-        eval "$command kernel/clang"
+        eval "$command \"$CLANG_DIR\""
     done
 fi
