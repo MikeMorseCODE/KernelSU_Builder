@@ -7,3 +7,12 @@ LineageOS-23.0:
     - make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/lahaina-qgki_defconfig
   build:
     - make O=out ARCH=arm64 -j$(nproc) LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+  target:
+    - out/arch/arm64/boot/Image
+  kernelSU:
+    - default
+
+KernelSU:
+  version:
+    default:
+      - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
