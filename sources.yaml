@@ -5,6 +5,8 @@ LineageOS-23.0:
     - git clone --depth=1 --filter=blob:none --single-branch -b master https://github.com/kdrag0n/proton-clang
   config:
     - make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/lahaina-qgki_defconfig
+    - scripts/config --file out/.config -d COMPAT_VDSO -d KUSER_HELPERS
+    - make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
   build:
     - make O=out ARCH=arm64 -j$(nproc) LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-
   target:
