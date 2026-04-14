@@ -1,7 +1,12 @@
 #!/bin/bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/sources_json.sh"
 
 # Get version from GitHub environment variable
 version=${VERSION}
+KERNEL_DIR="${KERNEL_DIR:-$SCRIPT_DIR/kernel}"
 
 # Check if version is provided
 if [ -z "$version" ]
@@ -11,7 +16,7 @@ then
 fi
 
 # Convert the YAML file to JSON
-json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < sources.yaml)
+json=$(load_sources_json "$SCRIPT_DIR/sources.yaml")
 
 # Check if json is empty
 if [ -z "$json" ]
@@ -33,22 +38,36 @@ fi
 
 # Print the commands that will be executed
 echo -e "\033[31mBuild.sh will execute following commands corresponding to ${version}:\033[0m"
-echo "$config_commands" | while read -r command; do
+while read -r command; do
     echo -e "\033[32m$command\033[0m"
-done
-echo "$build_commands" | while read -r command; do
+done <<< "$config_commands"
+while read -r command; do
     echo -e "\033[32m$command\033[0m"
-done
+done <<< "$build_commands"
 
 # Enter the kernel directory
-cd kernel || exit 1
+cd "$KERNEL_DIR" || exit 1
+
+# Enable ccache automatically when available (can be disabled with USE_CCACHE=0).
+if command -v ccache >/dev/null 2>&1 && [ "${USE_CCACHE:-1}" != "0" ]; then
+    export CCACHE_DIR="${CCACHE_DIR:-$PWD/.ccache}"
+    export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-20G}"
+    export CCACHE_COMPRESS=1
+    ccache -M "$CCACHE_MAXSIZE" >/dev/null 2>&1 || true
+    extra_make_env='CC="ccache clang" HOSTCC="ccache clang"'
+else
+    extra_make_env=''
+fi
 
 # Execute the config commands
-echo "$config_commands" | while read -r command; do
+while read -r command; do
     eval "$command"
-done
+done <<< "$config_commands"
 
 # Execute the build commands
-echo "$build_commands" | while read -r command; do
-    eval "$command"
-done
+while read -r command; do
+    if [ -n "${MAKE_JOBS:-}" ]; then
+        command=$(echo "$command" | sed -E "s/-j\\$\\(nproc\\)/-j${MAKE_JOBS}/g; s/-j[0-9]+/-j${MAKE_JOBS}/g")
+    fi
+    eval "$command $extra_make_env"
+done <<< "$build_commands"

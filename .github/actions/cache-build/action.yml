@@ -1,0 +1,30 @@
+name: Cache Kernel Build Assets
+description: Restore/save maximum practical kernel builder caches (sources, outputs, ccache, packaging, pip)
+
+inputs:
+  version:
+    description: Build matrix version key
+    required: true
+  cache-prefix:
+    description: Optional cache key prefix
+    required: false
+    default: kernel-builder
+
+runs:
+  using: composite
+  steps:
+    - name: Cache kernel build assets
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/kernel/.ccache
+          ${{ github.workspace }}/kernel/.git
+          ${{ github.workspace }}/kernel/clang
+          ${{ github.workspace }}/kernel/out
+          ${{ github.workspace }}/AnyKernel3
+          ${{ github.workspace }}/outw
+          ~/.cache/pip
+        key: ${{ runner.os }}-${{ inputs.cache-prefix }}-${{ inputs.version }}-${{ hashFiles('sources.yaml', 'ksu_version.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.cache-prefix }}-${{ inputs.version }}-
+          ${{ runner.os }}-${{ inputs.cache-prefix }}-

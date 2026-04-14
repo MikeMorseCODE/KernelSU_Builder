@@ -1,13 +1,17 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/sources_json.sh"
+
 # Define some colors
 GREEN='\033[32m'
 RED='\033[31m'
 NC='\033[0m' # No Color
+KERNEL_DIR="${KERNEL_DIR:-$SCRIPT_DIR/kernel}"
 
 
-# Convert the YAML file to JSON using Python
-json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < sources.yaml)
+# Convert the YAML file to JSON
+json=$(load_sources_json "$SCRIPT_DIR/sources.yaml")
 
 # Check if json is empty
 if [ -z "$json" ]
@@ -34,7 +38,7 @@ echo "$custom_commands" | while read -r command; do
 done
 
 # Enter kernel directory
-cd kernel
+cd "$KERNEL_DIR" || exit 1
 
 # Execute the out commands
 echo "$out_commands" | while read -r command; do

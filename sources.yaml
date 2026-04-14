@@ -1,10 +1,12 @@
 LineageOS-23.0:
   kernel:
-    - git clone --depth=1 -b lineage-23.0 https://github.com/LineageOS/android_kernel_razer_sg8175p
+    - git clone --depth=1 --filter=blob:none --single-branch -b lineage-23.0 https://github.com/LineageOS/android_kernel_razer_sg8175p
   clang:
-    - git clone --depth=1 -b master https://github.com/kdrag0n/proton-clang
+    - git clone --depth=1 --filter=blob:none --single-branch -b master https://github.com/kdrag0n/proton-clang
   config:
     - make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/lahaina-qgki_defconfig
+    - scripts/config --file out/.config -d COMPAT_VDSO -d KUSER_HELPERS
+    - make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
   build:
     - make O=out ARCH=arm64 -j$(nproc) LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-
   target:
@@ -17,9 +19,9 @@ LineageOS-23.0:
 KernelSU:
   version:
     default:
-      - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/v0.7.6/kernel/setup.sh" | bash - && find drivers/kernelsu -name "*.c" -exec sed -i 's/#include <linux\/pgtable.h>/#include <asm\/pgtable.h>/g' {} \;
+      - curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/v0.7.6/kernel/setup.sh" | bash - && find drivers/kernelsu -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i -E 's@#include[[:space:]]*<linux/pgtable.h>@#include <asm/pgtable.h>@g; s@#include[[:space:]]*\"linux/pgtable.h\"@#include <asm/pgtable.h>@g' {} +
 
 AnyKernel3:
   version:
     default:
-      - git clone --depth=1 -b master https://github.com/osm0sis/AnyKernel3
+      - git clone --depth=1 --filter=blob:none --single-branch -b master https://github.com/osm0sis/AnyKernel3

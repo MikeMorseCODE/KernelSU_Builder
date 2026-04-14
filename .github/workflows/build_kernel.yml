@@ -23,6 +23,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Restore build caches
+        uses: ./.github/actions/cache-build
+        with:
+          version: ${{ matrix.version }}
+
       - name: Install build dependencies
         run: |
           sudo apt update
@@ -33,14 +38,7 @@ jobs:
         run: |
           echo "/usr/lib/ccache" >> $GITHUB_PATH
           echo "USE_CCACHE=1" >> $GITHUB_ENV
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
+          echo "CCACHE_DIR=${{ github.workspace }}/kernel/.ccache" >> $GITHUB_ENV
 
       - name: Clone clang and kernel sources
         run: |

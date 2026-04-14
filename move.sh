@@ -1,5 +1,8 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/sources_json.sh"
+
 # Define some colors
 RED='\033[31m'
 GREEN='\033[32m'
@@ -16,7 +19,7 @@ then
 fi
 
 # Convert the YAML file to JSON
-json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < sources.yaml)
+json=$(load_sources_json "$SCRIPT_DIR/sources.yaml")
 
 # Check if json is empty
 if [ -z "$json" ]
