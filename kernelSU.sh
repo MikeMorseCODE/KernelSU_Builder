@@ -131,3 +131,45 @@ EOF
         mv "$tmp_file" drivers/kernelsu/policy/allowlist.c
     fi
 fi
+
+# Older kernels may not expose seccomp.filter_count in struct seccomp.
+if [ -f "drivers/kernelsu/policy/app_profile.c" ]; then
+    if grep -q "seccomp.filter_count" drivers/kernelsu/policy/app_profile.c; then
+        sed -i -E 's@^[[:space:]]*atomic_set\(&current->seccomp\.filter_count, 0\);@    /* filter_count is unavailable on some kernels */@' drivers/kernelsu/policy/app_profile.c
+    fi
+fi
+
+# Older SELinux internals may not expose selinux_state.policy/policy_mutex expected by newer KernelSU.
+if [ -f "security/selinux/include/security.h" ] && [ -f "drivers/kernelsu/Kbuild" ]; then
+    if ! grep -q "policy_mutex" security/selinux/include/security.h; then
+        sed -i -E '/kernelsu-objs \+= selinux\/(selinux|rules|sepolicy)\.o/d' drivers/kernelsu/Kbuild
+    fi
+fi
+
+# linux/minmax.h may not exist on older kernels.
+if [ -f "drivers/kernelsu/sulog/event.c" ]; then
+    sed -i 's@#include <linux/minmax.h>@#include <linux/kernel.h>@g' drivers/kernelsu/sulog/event.c
+fi
+
+# Older kernels require explicit tasklist/init_task declarations in supercall dispatch.
+if [ -f "drivers/kernelsu/supercall/dispatch.c" ]; then
+    if ! grep -q "linux/sched/signal.h" drivers/kernelsu/supercall/dispatch.c; then
+        sed -i '1i #include <linux/sched/signal.h>' drivers/kernelsu/supercall/dispatch.c
+    fi
+fi
+
+# Older kernels may not define TWA_RESUME for task_work_add.
+if [ -f "drivers/kernelsu/supercall/supercall.c" ]; then
+    if ! grep -q "KSU_TWA_RESUME_FALLBACK" drivers/kernelsu/supercall/supercall.c; then
+        tmp_file="$(mktemp)"
+        cat > "$tmp_file" <<'EOF'
+#ifndef TWA_RESUME
+#define KSU_TWA_RESUME_FALLBACK
+#define TWA_RESUME 0
+#endif
+
+EOF
+        cat drivers/kernelsu/supercall/supercall.c >> "$tmp_file"
+        mv "$tmp_file" drivers/kernelsu/supercall/supercall.c
+    fi
+fi
